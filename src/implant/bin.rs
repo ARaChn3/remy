@@ -17,10 +17,15 @@
 //! Edit these constants before compiling for your target:
 
 // === CONFIGURATION ===
-// Edit these values before building the implant!
+// Set via environment variable when building:
+//   REMY_C2_URL=http://your-server:8080 cargo build --release --bin remy-implant
+// Or use: remy generate --c2 http://your-server:8080
 
-/// C2 server URL - where the implant should connect
-const C2_URL: &str = "http://localhost:8080";
+/// C2 server URL - set via REMY_C2_URL env var at compile time
+const C2_URL: &str = match option_env!("REMY_C2_URL") {
+    Some(url) => url,
+    None => "http://localhost:8080",
+};
 
 /// How often to check in with the C2 (seconds)
 const SLEEP_INTERVAL: u64 = 30;
