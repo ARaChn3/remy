@@ -17,8 +17,10 @@ pub mod files;
 pub mod sysinfo;
 pub mod screenshot;
 pub mod troll;
+pub mod persist;
 
 pub use exec::*;
 pub use files::*;
 pub use sysinfo::*;
 pub use screenshot::*;
+pub use persist::*;

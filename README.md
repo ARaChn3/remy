@@ -13,13 +13,15 @@ This project is _strictly for educational/research purposes_, any malicious acti
 
 ## Features
 
-- [ ] HTTP-based C2 communication
-- [ ] Cross-platform (Windows/Linux)
-- [ ] Command execution
+- [x] HTTP-based C2 communication
+- [x] Cross-platform (Windows/Linux)
+- [x] Command execution
 - [ ] File upload/download
-- [ ] Screenshot capture
+- [x] Screenshot capture
 - [ ] Persistence mechanisms
-- [ ] Encrypted communications
+- [x] Encrypted communications (AES-256-GCM)
+- [x] Web UI dashboard
+- [x] Troll commands (rickroll, speak, popup, wallpaper, mouse_chaos)
 
 ## Building
 

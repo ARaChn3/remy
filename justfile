@@ -27,11 +27,11 @@ build-frontend:
 
 # Run the C2 server in dev mode
 dev:
-    cargo run -- server
+    cargo run --bin remy -- server
 
 # Run the C2 server with web UI
 run:
-    cargo run --release -- server --ui
+    cargo run --release --bin remy -- server --ui
 
 # Run tests
 test:
