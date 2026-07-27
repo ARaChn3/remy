@@ -20,7 +20,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 
 use super::sessions::SharedSessions;
-use crate::shared::{CheckinRequest, CheckinResponse, Command, CommandResult, CommandType, ImplantInfo};
+use crate::shared::{CheckinRequest, CheckinResponse, CommandResult, CommandType, ImplantInfo};
 
 /// Default sleep interval for implants (seconds).
 const DEFAULT_SLEEP_INTERVAL: u64 = 30;
@@ -193,4 +193,32 @@ pub async fn get_result(
         .cloned()
         .map(Json)
         .ok_or(StatusCode::NOT_FOUND)
+}
+
+/// Gets all results for an implant.
+///
+/// GET /api/implants/:id/results
+pub async fn get_implant_results(
+    State(sessions): State<SharedSessions>,
+    Path(implant_id): Path<String>,
+) -> Json<Vec<CommandResult>> {
+    let sessions = sessions.read().unwrap();
+    let results: Vec<CommandResult> = sessions
+        .get_implant_results(&implant_id)
+        .into_iter()
+        .cloned()
+        .collect();
+    Json(results)
+}
+
+/// Removes an implant from tracking.
+///
+/// DELETE /api/implants/:id
+pub async fn delete_implant(
+    State(sessions): State<SharedSessions>,
+    Path(id): Path<String>,
+) -> StatusCode {
+    let mut sessions = sessions.write().unwrap();
+    sessions.remove_implant(&id);
+    StatusCode::OK
 }
