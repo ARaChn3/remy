@@ -50,9 +50,31 @@ pub fn change_wallpaper(image_url: &str) -> Result<String, String> {
 
     #[cfg(target_os = "windows")]
     {
-        // Download image first, then use SystemParametersInfoW
-        // This is a simplified version - real impl would download first
-        Err("Windows wallpaper change requires downloading image first (TODO)".to_string())
+        // Download image to temp, then set via PowerShell
+        let temp_path = std::env::var("TEMP").unwrap_or_else(|_| "C:\\Windows\\Temp".to_string());
+        let wallpaper_path = format!("{}\\wallpaper.jpg", temp_path);
+
+        // Download with curl (available on modern Windows)
+        let download = Command::new("curl")
+            .args(["-sL", "-o", &wallpaper_path, image_url])
+            .output()
+            .map_err(|e| format!("Download failed: {}", e))?;
+
+        if !download.status.success() {
+            return Err("Failed to download wallpaper image".to_string());
+        }
+
+        // Set wallpaper via PowerShell SystemParametersInfo
+        let script = format!(
+            r#"Add-Type -TypeDefinition 'using System.Runtime.InteropServices; public class W {{ [DllImport("user32.dll", CharSet=CharSet.Auto)] public static extern int SystemParametersInfo(int a, int b, string c, int d); }}'; [W]::SystemParametersInfo(20, 0, '{}', 3)"#,
+            wallpaper_path.replace('\\', "\\\\")
+        );
+        Command::new("powershell")
+            .args(["-Command", &script])
+            .output()
+            .map_err(|e| format!("Failed to set wallpaper: {}", e))?;
+
+        Ok(format!("Wallpaper changed to: {}", image_url))
     }
 
     #[cfg(target_os = "linux")]
@@ -251,12 +273,48 @@ pub fn mouse_chaos(duration_secs: u32) -> Result<String, String> {
         return Ok(format!("Mouse chaos for {} seconds complete!", duration_secs));
     }
 
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(target_os = "windows")]
     {
-        // TODO: Implement for Windows/macOS
-        Ok(format!(
-            "Mouse chaos not implemented for this platform (would run for {}s)",
-            duration_secs
-        ))
+        use rand::Rng;
+        let start = std::time::Instant::now();
+        let duration = Duration::from_secs(duration_secs as u64);
+
+        while start.elapsed() < duration {
+            let mut rng = rand::thread_rng();
+            let x: i32 = rng.gen_range(0..1920);
+            let y: i32 = rng.gen_range(0..1080);
+
+            let script = format!(
+                r#"Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Cursor]::Position = New-Object System.Drawing.Point({}, {})"#,
+                x, y
+            );
+            let _ = Command::new("powershell")
+                .args(["-Command", &script])
+                .output();
+
+            thread::sleep(Duration::from_millis(50));
+        }
+        return Ok(format!("Mouse chaos for {} seconds complete!", duration_secs));
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        use rand::Rng;
+        let start = std::time::Instant::now();
+        let duration = Duration::from_secs(duration_secs as u64);
+
+        while start.elapsed() < duration {
+            let mut rng = rand::thread_rng();
+            let x: i32 = rng.gen_range(0..1920);
+            let y: i32 = rng.gen_range(0..1080);
+
+            // cliclick is a common macOS tool, fallback to AppleScript mouse key events
+            let _ = Command::new("cliclick")
+                .args(["m:", &format!("{},{}", x, y)])
+                .output();
+
+            thread::sleep(Duration::from_millis(50));
+        }
+        return Ok(format!("Mouse chaos for {} seconds complete!", duration_secs));
     }
 }

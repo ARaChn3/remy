@@ -22,6 +22,7 @@ use tower_http::cors::{Any, CorsLayer};
 use tracing::info;
 
 use super::api;
+use super::embed;
 use super::sessions::SharedSessions;
 
 /// Configuration for the HTTP server.
@@ -82,8 +83,7 @@ pub async fn start_server(
     // Add web UI if enabled
     if config.serve_ui {
         // Serve embedded frontend files
-        // TODO: Add rust-embed integration for frontend
-        app = app.fallback(get(|| async { "Web UI not yet built. Run `just build-frontend` first." }));
+        app = app.fallback(get(embed::static_handler));
     }
 
     // Add CORS for development

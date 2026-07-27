@@ -36,6 +36,7 @@
 pub mod http;
 pub mod sessions;
 pub mod api;
+pub mod embed;
 
 pub use http::*;
 pub use sessions::*;

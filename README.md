@@ -16,9 +16,9 @@ This project is _strictly for educational/research purposes_, any malicious acti
 - [x] HTTP-based C2 communication
 - [x] Cross-platform (Windows/Linux)
 - [x] Command execution
-- [ ] File upload/download
+- [x] File upload/download
 - [x] Screenshot capture
-- [ ] Persistence mechanisms
+- [x] Persistence mechanisms
 - [x] Encrypted communications (AES-256-GCM)
 - [x] Web UI dashboard
 - [x] Troll commands (rickroll, speak, popup, wallpaper, mouse_chaos)
